@@ -1,0 +1,2413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger — HRMS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg: #f8fafc;
+  --bg-gradient: radial-gradient(at top left, #f1f5f9, #f8fafc);
+  --surface: #ffffff;
+  --ink: #0f172a;
+  --ink-soft: #475569;
+  --ink-faint: #94a3b8;
+  --line: #e2e8f0;
+  --accent: #4f46e5;
+  --accent-ink: #312e81;
+  --accent-soft: #e0e7ff;
+  --sage: #10b981;
+  --sage-soft: #ecfdf5;
+  --amber: #f59e0b;
+  --amber-soft: #fffbeb;
+  --rose: #ef4444;
+  --rose-soft: #fef2f2;
+  --mono: 'IBM Plex Mono', monospace;
+  --display: 'Fraunces', serif;
+  --body: 'Inter', sans-serif;
+  --radius: 12px;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03), 0 0 0 1px rgba(0, 0, 0, 0.015);
+  --shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.02);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;min-height:100vh;}
+body{
+  background: var(--bg-gradient);
+  color:var(--ink);
+  font-family:var(--body);
+  font-size:14.5px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  position: relative;
+  overflow-x: hidden;
+}
+/* Blurred background blobs for premium aesthetic */
+body::before {
+  content: "";
+  position: fixed;
+  top: -10%;
+  left: -10%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, rgba(99, 102, 241, 0) 70%);
+  z-index: -1;
+  pointer-events: none;
+}
+body::after {
+  content: "";
+  position: fixed;
+  bottom: -10%;
+  right: -10%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.04) 0%, rgba(16, 185, 129, 0) 70%);
+  z-index: -1;
+  pointer-events: none;
+}
+#app{min-height:100vh;display:flex;flex-direction:column;position:relative;z-index:1;}
+h1,h2,h3,h4{font-family:var(--display);font-weight:600;margin:0 0 4px;color:var(--ink);letter-spacing:-0.02em;}
+p{margin:0;}
+a{color:var(--accent);text-decoration:none;transition:color 0.15s;}
+a:hover{color:var(--accent-ink);}
+button{font-family:var(--body);cursor:pointer;}
+input,select,textarea{font-family:var(--body);}
+::selection{background:var(--accent-soft);color:var(--accent-ink);}
+@media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important;} }
+
+/* ---------- layout shells ---------- */
+.auth-shell{display:flex;min-height:100vh;background:var(--bg);}
+.auth-brand{
+  flex:1.2;background:radial-gradient(circle at 0% 0%, #1e1b4b 0%, #0f172a 100%);color:#EFEFEA;position:relative;
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:56px 60px;overflow:hidden;
+}
+.auth-brand::after{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(circle at 80% 110%, rgba(99, 102, 241, 0.3), transparent 60%);
+  pointer-events:none;
+}
+.brand-mark{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.75;}
+.brand-headline{font-family:var(--display);font-size:clamp(32px,4.5vw,52px);line-height:1.06;max-width:520px;position:relative;z-index:1;letter-spacing:-0.03em;}
+.brand-sub{color:#94a3b8;max-width:440px;margin-top:16px;font-size:16px;position:relative;z-index:1;line-height:1.6;}
+.week-row{display:flex;gap:10px;position:relative;z-index:1;margin-top:18px;}
+.week-cell{
+  width:38px;height:38px;border-radius:8px;background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;color:#cbd5e1;
+  animation:align-in .8s cubic-bezier(.16,1,0.3,1) both;
+  transition: all 0.2s ease;
+}
+.week-cell.on{background:var(--sage);border-color:var(--sage);color:#fff;box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);}
+.week-cell:nth-child(1){animation-delay:.02s}
+.week-cell:nth-child(2){animation-delay:.08s}
+.week-cell:nth-child(3){animation-delay:.14s}
+.week-cell:nth-child(4){animation-delay:.20s}
+.week-cell:nth-child(5){animation-delay:.26s}
+.week-cell:nth-child(6){animation-delay:.32s}
+.week-cell:nth-child(7){animation-delay:.38s}
+@keyframes align-in{
+  from{opacity:0; transform:translateY(18px) rotate(-8deg);}
+  to{opacity:1; transform:translateY(0) rotate(0);}
+}
+.auth-foot{font-family:var(--mono);font-size:11.5px;color:#64748b;position:relative;z-index:1;}
+.auth-panel{
+  flex:1;display:flex;align-items:center;justify-content:center;padding:40px 24px;background:var(--bg-gradient);
+}
+.auth-card{
+  width:100%;max-width:400px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 36px 32px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+  animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.auth-card h1{font-size:28px;margin-bottom:6px;letter-spacing:-0.02em;}
+.auth-tab-copy{color:var(--ink-soft);font-size:13.5px;margin-bottom:26px;}
+.field{margin-bottom:18px;}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;letter-spacing:.01em;}
+.field input, .field select, .field textarea{
+  width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:8px;
+  background:var(--bg);color:var(--ink);font-size:14px;outline:none;
+  transition:border-color .15s, box-shadow 0.15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(99, 102, 241, 0.15);
+  background: var(--surface);
+}
+.field-row{display:flex;gap:14px;}
+.field-row .field{flex:1;}
+.hint-list{list-style:none;padding:0;margin:8px 0 0;font-size:12px;color:var(--ink-faint);display:flex;flex-direction:column;gap:4px;}
+.hint-list li{display:flex;align-items:center;gap:8px;transition: color 0.2s;}
+.hint-list li.ok{color:var(--sage);}
+.hint-dot{width:6px;height:6px;border-radius:50%;background:var(--ink-faint);flex-shrink:0;transition: background-color 0.2s;}
+.hint-list li.ok .hint-dot{background:var(--sage);box-shadow: 0 0 4px var(--sage);}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:11px 20px;border-radius:8px;border:1px solid transparent;font-weight:600;font-size:13.5px;
+  transition:transform .1s, background .15s, border-color .15s, box-shadow .15s; user-select:none;
+}
+.btn:active{transform:translateY(1px) scale(0.98);}
+.btn-primary{
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-ink) 100%);
+  color:#fff;
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.15);
+}
+.btn-primary:hover{
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.25);
+  transform: translateY(-1px);
+}
+.btn-primary:disabled{
+  background: var(--line);
+  color: var(--ink-faint);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn-block{width:100%;}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--line);}
+.btn-ghost:hover{border-color:var(--ink-faint);background: rgba(0, 0, 0, 0.02);}
+.btn-sage{background:var(--sage);color:#fff;box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15);}
+.btn-sage:hover{background: #059669; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(16, 185, 129, 0.25);}
+.btn-rose{background:var(--rose);color:#fff;box-shadow: 0 4px 10px rgba(239, 68, 68, 0.15);}
+.btn-rose:hover{background: #dc2626; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(239, 68, 68, 0.25);}
+.btn-sm{padding:7px 14px;font-size:12.5px;border-radius:7px;}
+.link-btn{background:none;border:none;color:var(--accent);font-weight:600;font-size:13px;padding:0;transition: color 0.15s;}
+.link-btn:hover{color:var(--accent-ink);text-decoration: underline;}
+.error-box{background:var(--rose-soft);color:var(--rose);border-radius:8px;padding:12px 14px;font-size:13px;margin-bottom:16px;border: 1px solid rgba(239, 68, 68, 0.15);animation: shake 0.3s;}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+.info-box{
+  background:var(--accent-soft);color:var(--accent-ink);border-radius:8px;padding:12px 14px;font-size:13px;
+  margin-bottom:16px;font-family:var(--mono);border: 1px solid rgba(99, 102, 241, 0.15);
+}
+.switcher{margin-top:24px;font-size:13px;color:var(--ink-soft);line-height:1.6;}
+
+/* ---------- app shell after login ---------- */
+.topbar{
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 32px;height:64px;position:sticky;top:0;z-index:20;
+}
+.topbar-left{display:flex;align-items:center;gap:28px;}
+.logo{font-family:var(--display);font-weight:700;font-size:20px;display:flex;align-items:center;gap:8px;letter-spacing:-0.02em;}
+.logo .dot{width:9px;height:9px;background:var(--accent);border-radius:50%;display:inline-block;box-shadow: 0 0 8px var(--accent);}
+.nav-links{display:flex;gap:6px;}
+.nav-link{
+  font-size:13px;font-weight:600;color:var(--ink-soft);padding:8px 14px;border-radius:8px;border:none;background:none;
+  transition: all 0.15s ease;
+}
+.nav-link:hover{color:var(--ink);background: rgba(0, 0, 0, 0.03);}
+.nav-link.active{color:var(--accent);background:var(--accent-soft);}
+.topbar-right{display:flex;align-items:center;gap:16px;}
+.role-badge{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:6px;
+  background:var(--sage-soft);color:var(--sage);border: 1px solid rgba(16, 185, 129, 0.15);font-weight: 600;
+}
+.role-badge.admin{background:var(--accent-soft);color:var(--accent);border: 1px solid rgba(99, 102, 241, 0.15);}
+.avatar{
+  width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:700;font-size:12.5px;object-fit:cover;flex-shrink:0;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease;
+}
+.avatar:hover{transform: scale(1.06);}
+.main{
+  flex:1;max-width:1120px;margin:0 auto;width:100%;padding:40px 32px 80px;
+  animation: page-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:6px;font-weight:600;}
+
+/* cards / grids */
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px;
+  box-shadow:var(--shadow);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.card:hover{
+  box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.04), 0 8px 8px -6px rgba(0, 0, 0, 0.02);
+}
+.grid-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;}
+@media (max-width:900px){.grid-cards{grid-template-columns:repeat(2,1fr);}}
+@media (max-width:560px){.grid-cards{grid-template-columns:1fr;}}
+.quick-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px 20px;
+  display:flex;flex-direction:column;gap:8px;cursor:pointer;
+  transition:border-color .2s, transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s;
+  box-shadow: var(--shadow);
+}
+.quick-card:hover{
+  border-color:var(--accent);
+  transform:translateY(-3px);
+  box-shadow: 0 12px 20px -5px rgba(99, 102, 241, 0.1), 0 4px 6px -2px rgba(99, 102, 241, 0.05);
+}
+.quick-card .qc-icon{
+  width:34px;height:34px;border-radius:8px;background:var(--accent-soft);color:var(--accent);
+  display:flex;align-items:center;justify-content:center;font-size:16px;font-weight: 700;
+  transition: all 0.2s ease;
+}
+.quick-card:hover .qc-icon{
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+}
+.quick-card h3{font-size:16px;margin: 2px 0 0;}
+.quick-card p{font-size:12px;color:var(--ink-faint);}
+.section-title{font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin:36px 0 14px;}
+.section-title:first-child{margin-top:0;}
+
+.badge{
+  font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:20px;font-weight:600;
+  display:inline-flex;align-items:center;gap:6px;border: 1px solid transparent;
+}
+.badge .dot{width:6px;height:6px;border-radius:50%;}
+.badge.present{background:var(--sage-soft);color:var(--sage);border-color: rgba(16, 185, 129, 0.15);}
+.badge.present .dot{background:var(--sage);box-shadow: 0 0 4px var(--sage);}
+.badge.absent{background:var(--rose-soft);color:var(--rose);border-color: rgba(239, 68, 68, 0.15);}
+.badge.absent .dot{background:var(--rose);box-shadow: 0 0 4px var(--rose);}
+.badge.half{background:var(--amber-soft);color:var(--amber);border-color: rgba(245, 158, 11, 0.15);}
+.badge.half .dot{background:var(--amber);box-shadow: 0 0 4px var(--amber);}
+.badge.leave{background:var(--accent-soft);color:var(--accent);border-color: rgba(99, 102, 241, 0.15);}
+.badge.leave .dot{background:var(--accent);box-shadow: 0 0 4px var(--accent);}
+.badge.pending{background:var(--amber-soft);color:var(--amber);border-color: rgba(245, 158, 11, 0.15);}
+.badge.pending .dot{background:var(--amber);box-shadow: 0 0 4px var(--amber);}
+.badge.approved{background:var(--sage-soft);color:var(--sage);border-color: rgba(16, 185, 129, 0.15);}
+.badge.approved .dot{background:var(--sage);box-shadow: 0 0 4px var(--sage);}
+.badge.rejected{background:var(--rose-soft);color:var(--rose);border-color: rgba(239, 68, 68, 0.15);}
+.badge.rejected .dot{background:var(--rose);box-shadow: 0 0 4px var(--rose);}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px;}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);font-weight:600;padding:10px 12px;border-bottom:1px solid var(--line);}
+td{padding:12px 12px;border-bottom:1px solid var(--line);vertical-align:middle;color: var(--ink-soft);}
+tr:hover td{color: var(--ink);background: rgba(248, 250, 252, 0.5);}
+tr:last-child td{border-bottom:none;}
+.table-wrap{overflow-x:auto;}
+.muted{color:var(--ink-faint);}
+.mono{font-family:var(--mono);font-size:12.5px;}
+.two-col{display:grid;grid-template-columns:1.3fr 1fr;gap:24px;}
+@media (max-width:820px){.two-col{grid-template-columns:1fr;}}
+.stack{display:flex;flex-direction:column;gap:16px;}
+.row-between{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:24px;}
+.tab-btn{
+  padding:10px 4px;margin-right:24px;font-size:14px;font-weight:600;color:var(--ink-faint);
+  background:none;border:none;border-bottom:2px solid transparent;transition: all 0.15s ease;
+}
+.tab-btn:hover{color: var(--ink);}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.empty-state{
+  padding:40px 20px;text-align:center;color:var(--ink-faint);border: 2px dashed var(--line);
+  border-radius:var(--radius);font-size:13.5px;background: rgba(255, 255, 255, 0.4);
+}
+hr.hairline{border:none;border-top:1px solid var(--line);margin:20px 0;}
+.profile-head{display:flex;gap:20px;align-items:center;margin-bottom:24px;}
+.big-avatar{
+  width:72px;height:72px;border-radius:50%;font-size:24px;
+  border: 3px solid #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+.kv{display:grid;grid-template-columns:140px 1fr;gap:10px 16px;font-size:13.5px;}
+.kv dt{color:var(--ink-faint);font-weight:500;}
+.kv dd{margin:0;color: var(--ink-soft);}
+.doc-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:13.5px;}
+.doc-row:last-child{border-bottom:none;}
+.upload-btn{font-size:12px;color:var(--accent);cursor:pointer;font-weight:600;transition: color 0.15s;}
+.upload-btn:hover{color: var(--accent-ink); text-decoration: underline;}
+.file-hidden{display:none;}
+
+/* attendance calendar */
+.cal-nav{display:flex;align-items:center;gap:10px;}
+.cal-nav button{
+  background:var(--surface);border:1px solid var(--line);border-radius:6px;width:30px;height:30px;
+  font-size:14px;display:inline-flex;align-items:center;justify-content:center;
+  transition: all 0.15s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+.cal-nav button:hover{border-color: var(--ink-faint); background: var(--bg);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:16px;}
+.cal-dow{font-family:var(--mono);font-size:11px;text-align:center;color:var(--ink-faint);text-transform:uppercase;font-weight:600;padding-bottom:4px;}
+.cal-day{
+  aspect-ratio:1;border-radius:8px;border:1px solid var(--line);background:var(--surface);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;position:relative;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.01);
+}
+.cal-day.blank{border:none;background:transparent;}
+.cal-day .num{font-family:var(--mono);color:var(--ink-soft);font-weight: 500;}
+.cal-day .status-dot{width:7px;height:7px;border-radius:50%;box-shadow: 0 0 3px rgba(0,0,0,0.15);}
+.cal-day.today{border-color:var(--accent);box-shadow:0 0 0 2.5px var(--accent-soft);}
+.cal-day.clickable{cursor:pointer;}
+.cal-day.clickable:hover{
+  border-color:var(--accent);
+  background: rgba(99, 102, 241, 0.04);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.04);
+}
+.cal-day.in-range{background:var(--accent-soft);border-color:var(--accent);color: var(--accent-ink);}
+.cal-day.in-range .num{color: var(--accent-ink);}
+.cal-day.range-end{
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-ink) 100%);
+  border-color:var(--accent);
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.25);
+}
+.cal-day.range-end .num{color:#fff;font-weight: 700;}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;font-size:12px;color:var(--ink-soft);}
+.legend span{display:inline-flex;align-items:center;gap:6px;}
+.legend .status-dot{width:7px;height:7px;border-radius:50%;}
+
+.status-edit-pop{
+  margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--surface);
+  border:1px solid var(--line);border-radius:8px;padding:12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  animation: fade-up 0.2s ease-out;
+}
+
+::-webkit-scrollbar{height:8px;width:8px;}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px;}
+::-webkit-scrollbar-thumb:hover{background: var(--ink-faint);}
+
+.toast-wrap{position:fixed;top:20px;right:20px;display:flex;flex-direction:column;gap:10px;z-index:100;}
+.toast{
+  background:var(--ink);color:#fff;padding:12px 20px;border-radius:8px;font-size:13.5px;
+  box-shadow:0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05);
+  animation:toast-in .25s cubic-bezier(0.16, 1, 0.3, 1) both;
+  max-width:320px;font-weight: 500;
+  display: flex; align-items: center; gap: 8px;
+}
+.toast.err{
+  background:var(--rose);
+  border-left: 4px solid #b91c1c;
+}
+.toast.ok{
+  background:var(--sage);
+  border-left: 4px solid #047857;
+}
+@keyframes toast-in{from{opacity:0;transform:translateY(-12px) scale(0.95);}to{opacity:1;transform:translateY(0) scale(1);}}
+
+.footer-note{text-align:center;color:var(--ink-faint);font-size:11.5px;font-family:var(--mono);padding:24px 0 12px;line-height: 1.6;}
+select.plain{
+  padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);
+  font-size:13px;outline:none;transition: all 0.15s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+select.plain:focus{border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft);}
+.type-chip{
+  display:inline-flex;padding:3px 9px;border-radius:6px;font-size:11.5px;font-weight:600;
+  background:var(--bg);border:1px solid var(--line);color: var(--ink-soft);
+}
+
+/* Custom DB & API styles */
+.db-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 24px;
+}
+@media (max-width: 768px) {
+  .db-layout { grid-template-columns: 1fr; }
+}
+.db-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-right: 1px solid var(--line);
+  padding-right: 16px;
+}
+.db-table-btn {
+  text-align: left;
+  padding: 8px 12px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  transition: all 0.15s;
+}
+.db-table-btn:hover {
+  background: rgba(0, 0, 0, 0.02);
+  color: var(--ink);
+}
+.db-table-btn.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: rgba(99, 102, 241, 0.15);
+}
+.sql-textarea {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.5;
+  background: #0f172a;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 14px;
+  outline: none;
+  resize: vertical;
+}
+.sql-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+.code-box {
+  background: #0f172a;
+  color: #38bdf8;
+  padding: 14px;
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  border: 1px solid #1e293b;
+}
+.code-box.error {
+  background: #fef2f2;
+  color: var(--rose);
+  border-color: rgba(239, 68, 68, 0.15);
+}
+.method-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 5px;
+  color: #fff;
+  text-transform: uppercase;
+  min-width: 60px;
+}
+.method-badge.get { background: #0ea5e9; }
+.method-badge.post { background: #10b981; }
+.method-badge.put { background: #f59e0b; }
+.method-badge.delete { background: #ef4444; }
+
+.api-endpoint-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--surface);
+  transition: border-color 0.15s;
+  cursor: pointer;
+}
+.api-endpoint-card:hover {
+  border-color: var(--accent);
+}
+.schema-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.schema-table th {
+  background: var(--bg);
+}
+.schema-table td, .schema-table th {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  font-size: 13px;
+}
+.json-editor {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  background: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 8px 12px;
+  outline: none;
+}
+.json-editor:focus {
+  border-color: var(--accent);
+}
+.response-badge {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+.response-badge.success { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+.response-badge.error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.webhook-log-line {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.webhook-log-line:last-child {
+  border-bottom: none;
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* ===================== STATE ===================== */
+const LEAVE_TYPES = ['Paid','Sick','Unpaid'];
+const ATT_STATUSES = ['Present','Absent','Half-day','Leave'];
+const DOW = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+const app = {
+  users: [], attendance: [], leaves: [],
+  session: null,
+  route: 'auth',
+  authMode: 'signin',      // signin | signup | verify
+  authError: '', authInfo: '',
+  pendingUser: null,       // user awaiting verification
+  navRoute: 'dashboard',   // dashboard|profile|attendance|leave|payroll|employees|approvals|api_dev|db_manage
+  adminSelectedEmp: null,
+  attMonth: new Date(),
+  adminAttMonth: new Date(),
+  leaveForm: { type:'Paid', start:null, end:null, remarks:'', calMonth: new Date() },
+  leaveFilter: 'all',
+  commentDraft: {},
+  
+  // API Dev & Integration state
+  apiSubRoute: 'docs', // docs | tester | webhooks
+  apiTester: {
+    method: 'GET',
+    url: '/api/auth/me',
+    headers: [{key: 'Content-Type', value: 'application/json'}],
+    body: '',
+    response: null,
+    loading: false
+  },
+  webhooks: [
+    { id: 'wh-1', event: 'attendance.checkin', url: 'https://api.workplace.com/hooks/checkin', desc: 'Notify Slack when an employee checks in' },
+    { id: 'wh-2', event: 'leave.approved', url: 'https://hooks.payroll-partner.com/leave', desc: 'Sync approved leaves to payroll' }
+  ],
+  webhookLogs: [],
+  
+  // Database Explorer state
+  dbSubRoute: 'data', // data | query | schema
+  dbSchema: null,
+  dbQueryText: 'SELECT * FROM users LIMIT 10;',
+  dbQueryResult: null,
+  dbActiveTable: 'users',
+  dbTablePage: 1,
+  dbTableSearch: '',
+  dbTableLimit: 10,
+};
+
+// API Endpoints metadata directory for Docs & Testing
+const API_DIRECTORY = [
+  {
+    path: '/api/auth/signin',
+    method: 'POST',
+    desc: 'Authenticate user and start a session.',
+    auth: false,
+    reqBody: { email: 'priya.nair@ledgerhr.io', password: 'Admin@123' },
+    resBody: { status: 'ok', userId: 'EMP-1000' }
+  },
+  {
+    path: '/api/auth/signup',
+    method: 'POST',
+    desc: 'Register a new employee account.',
+    auth: false,
+    reqBody: { empId: 'EMP-1010', name: 'Ananya Roy', email: 'ananya.roy@ledgerhr.io', password: 'Employee@123!', role: 'employee' },
+    resBody: { status: 'verify', pendingUser: { id: 'EMP-1010', email: 'ananya.roy@ledgerhr.io' }, code: '482931' }
+  },
+  {
+    path: '/api/auth/verify',
+    method: 'POST',
+    desc: 'Verify new employee account with 6-digit registration code.',
+    auth: false,
+    reqBody: { empId: 'EMP-1010', code: '482931' },
+    resBody: { status: 'ok', userId: 'EMP-1010' }
+  },
+  {
+    path: '/api/auth/me',
+    method: 'GET',
+    desc: 'Retrieve profile details of the currently signed-in user.',
+    auth: true,
+    reqBody: null,
+    resBody: { id: 'EMP-1000', name: 'Priya Nair', email: 'priya.nair@ledgerhr.io', role: 'admin', jobTitle: 'HR Officer', department: 'People Ops', joinDate: '2021-03-01', phone: '+91 98765 43210', address: 'Salt Lake, Kolkata', status: 'active', avatarColor: '#3D5A80', avatarUrl: null, documents: ['Offer Letter.pdf', 'ID Proof.pdf'], salary: { basic: 65000, allowances: 15000, deductions: 5000 }, updatedAt: '2026-06-01' }
+  },
+  {
+    path: '/api/users',
+    method: 'GET',
+    desc: 'Retrieve details for all employee profiles. Requires Admin privileges.',
+    auth: true,
+    reqBody: null,
+    resBody: [{ id: 'EMP-1001', name: 'Arjun Sen', email: 'arjun.sen@ledgerhr.io', role: 'employee', jobTitle: 'Frontend Engineer', department: 'Engineering', joinDate: '2023-01-10', phone: '+91 90123 44556', address: 'Park Street, Kolkata', status: 'active', avatarColor: '#4C7A56', avatarUrl: null, documents: ['Offer Letter.pdf', 'ID Proof.pdf'], salary: { basic: 48000, allowances: 9000, deductions: 3200 }, updatedAt: '2026-05-15' }]
+  },
+  {
+    path: '/api/users/EMP-1001',
+    method: 'PUT',
+    desc: 'Update details of an employee profile. Admins can update all details, while employees can only edit phone and address.',
+    auth: true,
+    reqBody: { name: 'Arjun Sen', phone: '+91 90123 99999', address: 'New Town, Kolkata', jobTitle: 'Frontend Engineer', department: 'Engineering', status: 'active' },
+    resBody: { success: true }
+  },
+  {
+    path: '/api/users/EMP-1001/avatar',
+    method: 'PUT',
+    desc: 'Upload a base64 encoded profile image.',
+    auth: true,
+    reqBody: { avatarUrl: 'data:image/jpeg;base64,...' },
+    resBody: { success: true }
+  },
+  {
+    path: '/api/attendance',
+    method: 'GET',
+    desc: 'Retrieve attendance records. Regular employees only see their own records, while Admins see all records.',
+    auth: true,
+    reqBody: null,
+    resBody: [{ employeeId: 'EMP-1001', date: '2026-07-04', status: 'Present', checkIn: '09:15', checkOut: '18:02' }]
+  },
+  {
+    path: '/api/attendance/check-in',
+    method: 'POST',
+    desc: 'Mark checking in for the current day. Sets status to Present.',
+    auth: true,
+    reqBody: {},
+    resBody: { success: true, checkIn: '09:12' }
+  },
+  {
+    path: '/api/attendance/check-out',
+    method: 'POST',
+    desc: 'Mark checking out for the current day.',
+    auth: true,
+    reqBody: {},
+    resBody: { success: true, checkOut: '18:05' }
+  },
+  {
+    path: '/api/attendance/status',
+    method: 'POST',
+    desc: 'Manually override or log attendance status for any date. Requires Admin privileges.',
+    auth: true,
+    reqBody: { employeeId: 'EMP-1001', date: '2026-07-03', status: 'Half-day' },
+    resBody: { success: true }
+  },
+  {
+    path: '/api/leaves',
+    method: 'GET',
+    desc: 'Retrieve leave requests. Employees see their requests, while Admins see all requests.',
+    auth: true,
+    reqBody: null,
+    resBody: [{ id: 'LV-z8x29a', employeeId: 'EMP-1001', type: 'Sick', start: '2026-06-10', end: '2026-06-11', remarks: 'Fever', status: 'Approved', comment: 'Get well soon', createdAt: '2026-06-08' }]
+  },
+  {
+    path: '/api/leaves',
+    method: 'POST',
+    desc: 'Submit a new leave request (Paid, Sick, or Unpaid).',
+    auth: true,
+    reqBody: { type: 'Paid', start: '2026-07-15', end: '2026-07-17', remarks: 'Annual vacation' },
+    resBody: { success: true }
+  },
+  {
+    path: '/api/leaves/LV-z8x29a/decide',
+    method: 'POST',
+    desc: 'Approve or reject a leave request and log an optional comment. Requires Admin privileges.',
+    auth: true,
+    reqBody: { decision: 'Approved', comment: 'Enjoy your vacation.' },
+    resBody: { success: true }
+  },
+  {
+    path: '/api/payroll',
+    method: 'GET',
+    desc: 'Retrieve salary and payroll configurations for all employees. Requires Admin privileges.',
+    auth: true,
+    reqBody: null,
+    resBody: [{ id: 'EMP-1001', name: 'Arjun Sen', salary: { basic: 48000, allowances: 9000, deductions: 3200 }, updatedAt: '2026-05-15' }]
+  },
+  {
+    path: '/api/payroll/EMP-1001',
+    method: 'PUT',
+    desc: 'Update the monthly salary structure for an employee. Requires Admin privileges.',
+    auth: true,
+    reqBody: { basic: 50000, allowances: 10000, deductions: 3500 },
+    resBody: { success: true }
+  },
+  {
+    path: '/api/db/schema',
+    method: 'GET',
+    desc: 'View SQLite tables, columns, and CREATE TABLE schema statements. Requires Admin privileges.',
+    auth: true,
+    reqBody: null,
+    resBody: [{ name: 'users', sql: 'CREATE TABLE users...', columns: [{ cid: 0, name: 'id', type: 'TEXT', notnull: 0, pk: 1 }] }]
+  },
+  {
+    path: '/api/db/query',
+    method: 'POST',
+    desc: 'Execute a raw SQL query directly on the SQLite database. Requires Admin privileges.',
+    auth: true,
+    reqBody: { query: 'SELECT count(*) as total_users FROM users;' },
+    resBody: { success: true, type: 'select', rows: [{ total_users: 4 }] }
+  }
+];
+
+/* ===================== STORAGE HELPERS ===================== */
+async function storageGet(key, fallback){
+  try{
+    if(window.storage && typeof window.storage.get === 'function'){
+      const r = await window.storage.get(key, false);
+      return r ? JSON.parse(r.value) : fallback;
+    } else {
+      const r = localStorage.getItem(key);
+      return r ? JSON.parse(r) : fallback;
+    }
+  }catch(e){ return fallback; }
+}
+async function storageSet(key, value){
+  try{
+    if(window.storage && typeof window.storage.set === 'function'){
+      await window.storage.set(key, JSON.stringify(value), false);
+    } else {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+  }
+  catch(e){ console.error('storage set failed', e); }
+}
+
+/* ===================== API UTILS ===================== */
+async function apiCall(endpoint, options = {}) {
+  if (!options.headers) options.headers = {};
+  if (options.body && !(options.body instanceof FormData)) {
+    options.headers['Content-Type'] = 'application/json';
+    if (typeof options.body !== 'string') {
+      options.body = JSON.stringify(options.body);
+    }
+  }
+  if (app.session) {
+    options.headers['X-User-Id'] = app.session;
+  }
+  let fetchUrl = endpoint;
+  if (fetchUrl.startsWith('/') && window.location.port !== '8080') {
+    fetchUrl = 'http://localhost:8080' + fetchUrl;
+  }
+  try {
+    const res = await fetch(fetchUrl, options);
+    let data;
+    const contentType = res.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      data = await res.json();
+    } else {
+      const text = await res.text();
+      data = { error: text || `Server returned status ${res.status}` };
+    }
+    if (!res.ok) {
+      throw new Error(data.error || 'Server error occurred');
+    }
+    return data;
+  } catch (e) {
+    toast(e.message, 'error');
+    throw e;
+  }
+}
+
+async function refreshFromDb() {
+  if (!app.session) return;
+  try {
+    const me = await apiCall('/api/auth/me');
+    if (me.role === 'admin') {
+      app.users = await apiCall('/api/users');
+      if (!app.users.some(u => u.id === me.id)) {
+        app.users.push(me);
+      }
+    } else {
+      app.users = [me];
+    }
+    app.attendance = await apiCall('/api/attendance');
+    app.leaves = await apiCall('/api/leaves');
+  } catch (e) {
+    console.error('API sync failed', e);
+  }
+}
+
+/* ===================== UTIL ===================== */
+function uid(prefix){ return prefix + '-' + Math.random().toString(36).slice(2,9); }
+function todayISO(){
+  const d = new Date();
+  return isoOf(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function pad(n){ return n<10 ? '0'+n : ''+n; }
+function isoOf(y,m,d){ return `${y}-${pad(m+1)}-${pad(d)}`; }
+function fmtDate(iso){
+  if(!iso) return '—';
+  const d = new Date(iso+'T00:00:00');
+  return `${pad(d.getDate())} ${MONTHS[d.getMonth()].slice(0,3)} ${d.getFullYear()}`;
+}
+function fmtMoney(n){ return '₹' + Number(n||0).toLocaleString('en-IN'); }
+function initials(name){ return name.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase(); }
+function esc(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(msg, type){
+  const wrap = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast ' + (type==='error'?'err':type==='ok'?'ok':'');
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(()=>t.remove(), 3200);
+}
+function findUser(id){ return app.users.find(u=>u.id===id); }
+function currentUser(){ return findUser(app.session); }
+function isAdmin(u){ return u && u.role==='admin'; }
+
+/* ===================== INIT ===================== */
+async function init(){
+  document.getElementById('app').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:10px;color:var(--ink-soft);font-family:var(--mono);font-size:12.5px;">
+      <div style="width:22px;height:22px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:spin 0.8s linear infinite;"></div>
+      Connecting to Ledger server…
+    </div>
+    <style>@keyframes spin{to{transform:rotate(360deg);}}</style>`;
+
+  const sess = await storageGet('hrms_session', null);
+  if(sess){
+    app.session = sess;
+    app.route = 'app';
+    app.navRoute = 'dashboard';
+    try {
+      await refreshFromDb();
+    } catch(e) {
+      app.session = null;
+      app.route = 'auth';
+    }
+  } else {
+    app.route = 'auth';
+  }
+  render();
+}
+
+/* ===================== AUTH ===================== */
+function pwRules(pw){
+  return {
+    len: pw.length>=8,
+    upper: /[A-Z]/.test(pw),
+    num: /[0-9]/.test(pw),
+    special: /[^A-Za-z0-9]/.test(pw),
+  };
+}
+function renderPwHints(pw){
+  const r = pwRules(pw);
+  const box = document.getElementById('pwHints');
+  if(!box) return;
+  const items = [
+    [r.len,'At least 8 characters'],
+    [r.upper,'One uppercase letter'],
+    [r.num,'One number'],
+    [r.special,'One special character'],
+  ];
+  box.innerHTML = items.map(([ok,label])=>`<li class="${ok?'ok':''}"><span class="hint-dot"></span>${label}</li>`).join('');
+}
+function switchAuthMode(mode){
+  app.authMode = mode; app.authError=''; app.authInfo='';
+  render();
+}
+async function handleSignup(ev){
+  ev.preventDefault();
+  const f = ev.target;
+  const empId = f.empId.value.trim();
+  const name = f.name.value.trim();
+  const email = f.email.value.trim().toLowerCase();
+  const password = f.password.value;
+  const confirm = f.confirm.value;
+  const role = f.role.value;
+
+  app.authError = '';
+  if(!empId || !name || !email){ app.authError = 'Please fill in every field.'; render(); return; }
+  const r = pwRules(password);
+  if(!(r.len&&r.upper&&r.num&&r.special)){ app.authError = 'Password does not meet the security rules below.'; render(); return; }
+  if(password !== confirm){ app.authError = 'Passwords do not match.'; render(); return; }
+
+  try {
+    const res = await apiCall('/api/auth/signup', {
+      method: 'POST',
+      body: { empId, name, email, password, role }
+    });
+    app.pendingUser = {
+      id: empId,
+      email: email,
+      _code: res.code
+    };
+    app.authMode = 'verify';
+    render();
+  } catch (e) {
+    app.authError = e.message;
+    render();
+  }
+}
+async function handleVerify(ev){
+  ev.preventDefault();
+  const entered = ev.target.code.value.trim();
+  try {
+    const res = await apiCall('/api/auth/verify', {
+      method: 'POST',
+      body: { empId: app.pendingUser.id, code: entered }
+    });
+    app.session = res.userId;
+    await storageSet('hrms_session', app.session);
+    app.pendingUser = null;
+    app.route = 'app'; app.navRoute='dashboard'; app.authError=''; app.authInfo='';
+    await refreshFromDb();
+    toast('Email verified. Welcome to Ledger.', 'ok');
+    render();
+  } catch (e) {
+    app.authError = e.message;
+    render();
+  }
+}
+async function handleSignin(ev){
+  ev.preventDefault();
+  const email = ev.target.email.value.trim().toLowerCase();
+  const password = ev.target.password.value;
+  try {
+    const res = await apiCall('/api/auth/signin', {
+      method: 'POST',
+      body: { email, password }
+    });
+    app.session = res.userId;
+    await storageSet('hrms_session', app.session);
+    app.route = 'app'; app.navRoute = 'dashboard'; app.authError='';
+    await refreshFromDb();
+    render();
+  } catch (e) {
+    app.authError = e.message;
+    render();
+  }
+}
+async function handleLogout(){
+  app.session = null;
+  await storageSet('hrms_session', null);
+  app.route = 'auth'; app.authMode='signin';
+  render();
+}
+
+/* ===================== NAVIGATION ===================== */
+function goTo(route){
+  app.navRoute = route;
+  if(route!=='attendance') {} // no-op
+  render();
+  window.scrollTo(0,0);
+}
+function setAdminSelectedEmp(id){ app.adminSelectedEmp = id; render(); }
+
+/* ===================== ATTENDANCE HELPERS ===================== */
+function attFor(empId, iso){ return app.attendance.find(a=>a.employeeId===empId && a.date===iso); }
+async function checkIn(empId){
+  try {
+    const res = await apiCall('/api/attendance/check-in', { method: 'POST' });
+    toast('Checked in at ' + res.checkIn, 'ok');
+    await refreshFromDb();
+    render();
+  } catch (e) {}
+}
+async function checkOut(empId){
+  try {
+    const res = await apiCall('/api/attendance/check-out', { method: 'POST' });
+    toast('Checked out at ' + res.checkOut, 'ok');
+    await refreshFromDb();
+    render();
+  } catch (e) {}
+}
+function statusDotClass(status){
+  return status==='Present' ? 'present' : status==='Absent' ? 'absent' : status==='Half-day' ? 'half' : status==='Leave' ? 'leave' : '';
+}
+function buildMonthCells(dateObj, empId){
+  const y = dateObj.getFullYear(), m = dateObj.getMonth();
+  const first = new Date(y,m,1);
+  const startPad = first.getDay();
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const cells = [];
+  for(let i=0;i<startPad;i++) cells.push(null);
+  for(let d=1; d<=daysInMonth; d++){
+    const iso = isoOf(y,m,d);
+    const rec = empId ? attFor(empId, iso) : null;
+    cells.push({ iso, day:d, status: rec ? rec.status : null, isToday: iso===todayISO() });
+  }
+  return cells;
+}
+function changeAttMonth(which, delta){
+  const key = which==='admin' ? 'adminAttMonth' : 'attMonth';
+  const d = new Date(app[key]);
+  d.setMonth(d.getMonth()+delta);
+  app[key] = d;
+  render();
+}
+
+/* ===================== LEAVE HELPERS ===================== */
+function isoInRange(iso, start, end){ return iso>=start && iso<=end; }
+function pickLeaveDate(iso){
+  const f = app.leaveForm;
+  if(!f.start || (f.start && f.end)){ f.start = iso; f.end = null; }
+  else if(iso < f.start){ f.start = iso; }
+  else { f.end = iso; }
+  render();
+}
+function clearLeaveRange(){ app.leaveForm.start=null; app.leaveForm.end=null; render(); }
+function changeLeaveCalMonth(delta){
+  const d = new Date(app.leaveForm.calMonth);
+  d.setMonth(d.getMonth()+delta);
+  app.leaveForm.calMonth = d;
+  render();
+}
+async function submitLeave(ev){
+  ev.preventDefault();
+  const f = app.leaveForm;
+  if(!f.start){ toast('Select at least a start date on the calendar.', 'error'); return; }
+  const end = f.end || f.start;
+  try {
+    await apiCall('/api/leaves', {
+      method: 'POST',
+      body: { type: f.type, start: f.start, end, remarks: f.remarks }
+    });
+    f.start = null; f.end = null; f.remarks = '';
+    toast('Leave request submitted.', 'ok');
+    await refreshFromDb();
+    render();
+  } catch (e) {}
+}
+function draftLeaveType(v){ app.leaveForm.type = v; }
+function draftLeaveRemarks(v){ app.leaveForm.remarks = v; }
+async function decideLeave(leaveId, decision){
+  const comment = app.commentDraft[leaveId] || '';
+  try {
+    await apiCall(`/api/leaves/${leaveId}/decide`, {
+      method: 'POST',
+      body: { decision, comment }
+    });
+    toast('Leave request ' + decision.toLowerCase() + '.', decision==='Approved' ? 'ok' : 'error');
+    delete app.commentDraft[leaveId];
+    await refreshFromDb();
+    render();
+  } catch (e) {}
+}
+function draftComment(id, v){ app.commentDraft[id] = v; }
+
+/* ===================== PROFILE HELPERS ===================== */
+function resizeAndStore(file, empId){
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const img = new Image();
+    img.onload = async function(){
+      const canvas = document.createElement('canvas');
+      const size = 128;
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const scale = Math.max(size/img.width, size/img.height);
+      const w = img.width*scale, h = img.height*scale;
+      ctx.drawImage(img, (size-w)/2, (size-h)/2, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+      try {
+        await apiCall(`/api/users/${empId}/avatar`, {
+          method: 'PUT',
+          body: { avatarUrl: dataUrl }
+        });
+        toast('Profile photo updated.', 'ok');
+        await refreshFromDb();
+        render();
+      } catch(e) {}
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+async function saveProfile(ev, empId, adminEditing){
+  ev.preventDefault();
+  const f = ev.target;
+  const body = {
+    phone: f.phone.value.trim(),
+    address: f.address.value.trim()
+  };
+  if(adminEditing){
+    body.name = f.name.value.trim();
+    body.jobTitle = f.jobTitle.value.trim();
+    body.department = f.department.value.trim();
+    body.status = f.status.value;
+  }
+  try {
+    await apiCall(`/api/users/${empId}`, {
+      method: 'PUT',
+      body
+    });
+    toast('Profile updated.', 'ok');
+    await refreshFromDb();
+    render();
+  } catch(e) {}
+}
+
+/* ===================== PAYROLL HELPERS ===================== */
+function netPay(sal){ return (sal.basic||0) + (sal.allowances||0) - (sal.deductions||0); }
+async function saveSalary(ev, empId){
+  ev.preventDefault();
+  const f = ev.target;
+  const body = {
+    basic: Number(f.basic.value)||0,
+    allowances: Number(f.allowances.value)||0,
+    deductions: Number(f.deductions.value)||0
+  };
+  try {
+    await apiCall(`/api/payroll/${empId}`, {
+      method: 'PUT',
+      body
+    });
+    toast('Salary structure updated.', 'ok');
+    app.editingSalaryFor = null;
+    await refreshFromDb();
+    render();
+  } catch (e) {}
+}
+function toggleSalaryEdit(empId){
+  app.editingSalaryFor = app.editingSalaryFor===empId ? null : empId;
+  render();
+}
+
+/* ===================== RENDER: ROOT ===================== */
+function render(){
+  const root = document.getElementById('app');
+  if(app.route === 'auth'){
+    root.innerHTML = renderAuth();
+  } else {
+    root.innerHTML = renderShell();
+  }
+  const pwField = document.getElementById('signupPw');
+  if(pwField) renderPwHints(pwField.value);
+}
+
+/* ===================== RENDER: AUTH ===================== */
+function renderAuth(){
+  const brand = `
+    <div class="auth-brand">
+      <div>
+        <div class="brand-mark">Ledger — HRMS</div>
+        <div class="brand-headline" style="margin-top:120px;">Every workday,<br>perfectly aligned.</div>
+        <p class="brand-sub">Onboarding, attendance, leave and payroll — one ledger of record for the whole team.</p>
+        <div class="week-row">
+          ${DOW.map((d,i)=>`<div class="week-cell ${i<5?'on':''}">${d}</div>`).join('')}
+        </div>
+      </div>
+      <div class="auth-foot">HRMS v1.0 · Demo workspace</div>
+    </div>`;
+
+  let panel = '';
+  if(app.authMode==='signin'){
+    panel = `
+      <div class="auth-card">
+        <h1>Sign in</h1>
+        <p class="auth-tab-copy">Welcome back. Enter your work email to continue.</p>
+        ${app.authError ? `<div class="error-box">${esc(app.authError)}</div>` : ''}
+        <form onsubmit="handleSignin(event)">
+          <div class="field"><label>Email</label><input name="email" type="email" required placeholder="you@ledgerhr.io" autocomplete="username"></div>
+          <div class="field"><label>Password</label><input name="password" type="password" required placeholder="••••••••" autocomplete="current-password"></div>
+          <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+        </form>
+        <div class="switcher">Demo access — Admin: <span class="mono">priya.nair@ledgerhr.io / Admin@123</span><br>Employee: <span class="mono">arjun.sen@ledgerhr.io / Employee@1</span></div>
+        <div class="switcher">New here? <button class="link-btn" onclick="switchAuthMode('signup')">Create an account</button></div>
+      </div>`;
+  } else if(app.authMode==='signup'){
+    panel = `
+      <div class="auth-card">
+        <h1>Create account</h1>
+        <p class="auth-tab-copy">Register with your Employee ID to get started.</p>
+        ${app.authError ? `<div class="error-box">${esc(app.authError)}</div>` : ''}
+        <form onsubmit="handleSignup(event)">
+          <div class="field-row">
+            <div class="field"><label>Employee ID</label><input name="empId" required placeholder="EMP-1010"></div>
+            <div class="field"><label>Role</label>
+              <select name="role"><option value="employee">Employee</option><option value="admin">HR / Admin</option></select>
+            </div>
+          </div>
+          <div class="field"><label>Full name</label><input name="name" required placeholder="Ananya Roy"></div>
+          <div class="field"><label>Email</label><input name="email" type="email" required placeholder="you@ledgerhr.io"></div>
+          <div class="field-row">
+            <div class="field"><label>Password</label><input id="signupPw" name="password" type="password" required oninput="renderPwHints(this.value)"></div>
+            <div class="field"><label>Confirm password</label><input name="confirm" type="password" required></div>
+          </div>
+          <ul class="hint-list" id="pwHints"></ul>
+          <button class="btn btn-primary btn-block" style="margin-top:16px;" type="submit">Create account</button>
+        </form>
+        <div class="switcher">Already registered? <button class="link-btn" onclick="switchAuthMode('signin')">Sign in</button></div>
+      </div>`;
+  } else if(app.authMode==='verify'){
+    panel = `
+      <div class="auth-card">
+        <h1>Verify your email</h1>
+        <p class="auth-tab-copy">We've sent a 6-digit code to <strong>${esc(app.pendingUser.email)}</strong>.</p>
+        <div class="info-box">Demo mode — your code is <strong>${app.pendingUser._code}</strong> (no real email is sent).</div>
+        ${app.authError ? `<div class="error-box">${esc(app.authError)}</div>` : ''}
+        <form onsubmit="handleVerify(event)">
+          <div class="field"><label>Verification code</label><input name="code" required maxlength="6" placeholder="000000" style="letter-spacing:.2em;font-family:var(--mono);"></div>
+          <button class="btn btn-primary btn-block" type="submit">Verify & continue</button>
+        </form>
+        <div class="switcher"><button class="link-btn" onclick="switchAuthMode('signup')">← Back to sign up</button></div>
+      </div>`;
+  }
+  return `<div class="auth-shell">${brand}<div class="auth-panel">${panel}</div></div>`;
+}
+
+/* ===================== RENDER: APP SHELL ===================== */
+function renderShell(){
+  const u = currentUser();
+  if(!u) return renderAuth();
+  const admin = isAdmin(u);
+  const navItems = admin
+    ? [['dashboard','Dashboard'],['employees','Employees'],['attendance','Attendance'],['approvals','Leave approvals'],['payroll','Payroll'],['api_dev','API Integration'],['db_manage','Database'],['profile','Profile']]
+    : [['dashboard','Dashboard'],['profile','Profile'],['attendance','Attendance'],['leave','Leave'],['payroll','Payroll']];
+
+  const avatarHtml = u.avatarUrl
+    ? `<img class="avatar" src="${u.avatarUrl}" alt="">`
+    : `<div class="avatar" style="background:${u.avatarColor}">${initials(u.name)}</div>`;
+
+  let body = '';
+  if(admin){
+    if(app.navRoute==='dashboard') body = renderAdminDashboard(u);
+    else if(app.navRoute==='employees') body = renderEmployeesTab(u);
+    else if(app.navRoute==='attendance') body = renderAttendancePage(u, true);
+    else if(app.navRoute==='approvals') body = renderApprovalsTab(u);
+    else if(app.navRoute==='payroll') body = renderPayrollPage(u, true);
+    else if(app.navRoute==='api_dev') body = renderApiDevPage();
+    else if(app.navRoute==='db_manage') body = renderDbManagePage();
+    else if(app.navRoute==='profile') body = renderProfilePage(u, u.id, false);
+  } else {
+    if(app.navRoute==='dashboard') body = renderEmployeeDashboard(u);
+    else if(app.navRoute==='profile') body = renderProfilePage(u, u.id, false);
+    else if(app.navRoute==='attendance') body = renderAttendancePage(u, false);
+    else if(app.navRoute==='leave') body = renderLeavePage(u);
+    else if(app.navRoute==='payroll') body = renderPayrollPage(u, false);
+  }
+
+  return `
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="logo"><span class="dot"></span>Ledger</div>
+        <div class="nav-links">
+          ${navItems.map(([r,label])=>`<button class="nav-link ${app.navRoute===r?'active':''}" onclick="goTo('${r}')">${label}</button>`).join('')}
+        </div>
+      </div>
+      <div class="topbar-right">
+        <span class="role-badge ${admin?'admin':''}">${admin?'HR / Admin':'Employee'}</span>
+        ${avatarHtml}
+        <button class="btn btn-ghost btn-sm" onclick="handleLogout()">Log out</button>
+      </div>
+    </div>
+    <div class="main">${body}</div>
+    <div class="footer-note">Ledger HRMS · SQLite database running on Node.js server</div>
+  `;
+}
+
+
+
+/* ===================== EMPLOYEE DASHBOARD ===================== */
+function renderEmployeeDashboard(u){
+  const myLeaves = app.leaves.filter(l=>l.employeeId===u.id).slice(0,4);
+  const todayRec = attFor(u.id, todayISO());
+  const activity = [];
+  myLeaves.forEach(l=>activity.push({when:l.createdAt, text:`Leave request (${l.type}, ${fmtDate(l.start)}–${fmtDate(l.end)}) is ${l.status.toLowerCase()}.`, status:l.status}));
+  if(todayRec) activity.unshift({when:todayISO(), text:`Today's attendance marked ${todayRec.status.toLowerCase()}${todayRec.checkIn?` · checked in ${todayRec.checkIn}`:''}.`, status:todayRec.status});
+
+  return `
+    <div class="page-head">
+      <div><div class="eyebrow">Dashboard</div><h1>Welcome back, ${esc(u.name.split(' ')[0])}</h1></div>
+    </div>
+    <div class="grid-cards">
+      <div class="quick-card" onclick="goTo('profile')"><div class="qc-icon">◐</div><h3>Profile</h3><p>Personal & job details</p></div>
+      <div class="quick-card" onclick="goTo('attendance')"><div class="qc-icon">▦</div><h3>Attendance</h3><p>Check in, view history</p></div>
+      <div class="quick-card" onclick="goTo('leave')"><div class="qc-icon">◫</div><h3>Leave requests</h3><p>Apply & track status</p></div>
+      <div class="quick-card" onclick="handleLogout()"><div class="qc-icon">→</div><h3>Log out</h3><p>End this session</p></div>
+    </div>
+    <div class="section-title">Recent activity</div>
+    <div class="card">
+      ${activity.length ? activity.map(a=>`
+        <div class="row-between" style="padding:9px 0;border-bottom:1px solid var(--line);">
+          <span style="font-size:13.5px;">${esc(a.text)}</span>
+          <span class="mono muted" style="font-size:11.5px;">${fmtDate(a.when)}</span>
+        </div>`).join('') : `<div class="empty-state">No recent activity yet — apply for leave or check in to see it here.</div>`}
+    </div>
+  `;
+}
+
+/* ===================== ADMIN DASHBOARD ===================== */
+function renderAdminDashboard(u){
+  const employees = app.users.filter(x=>x.role==='employee');
+  const pending = app.leaves.filter(l=>l.status==='Pending').length;
+  const today = todayISO();
+  const presentToday = employees.filter(e=>{const r=attFor(e.id,today); return r && (r.status==='Present'||r.status==='Half-day');}).length;
+
+  return `
+    <div class="page-head">
+      <div><div class="eyebrow">Dashboard</div><h1>Good to see you, ${esc(u.name.split(' ')[0])}</h1></div>
+    </div>
+    <div class="grid-cards">
+      <div class="quick-card" onclick="goTo('employees')"><div class="qc-icon">◎</div><h3>${employees.length} employees</h3><p>View & manage the team</p></div>
+      <div class="quick-card" onclick="goTo('attendance')"><div class="qc-icon">▦</div><h3>${presentToday}/${employees.length} in today</h3><p>Attendance records</p></div>
+      <div class="quick-card" onclick="goTo('approvals')"><div class="qc-icon">◫</div><h3>${pending} pending</h3><p>Leave approvals</p></div>
+      <div class="quick-card" onclick="goTo('payroll')"><div class="qc-icon">₹</div><h3>Payroll</h3><p>Review salary structures</p></div>
+    </div>
+    <div class="section-title">Employees</div>
+    <div class="card"><div class="table-wrap">
+      <table>
+        <tr><th>Name</th><th>ID</th><th>Department</th><th>Today</th><th></th></tr>
+        ${employees.map(e=>{
+          const r = attFor(e.id, today);
+          return `<tr>
+            <td>${esc(e.name)}</td>
+            <td class="mono">${esc(e.id)}</td>
+            <td>${esc(e.department)}</td>
+            <td>${r ? `<span class="badge ${statusDotClass(r.status)}"><span class="dot"></span>${r.status}</span>` : `<span class="muted">—</span>`}</td>
+            <td><button class="btn btn-ghost btn-sm" onclick="setAdminSelectedEmp('${e.id}');goTo('employees')">View</button></td>
+          </tr>`;
+        }).join('')}
+      </table>
+    </div></div>
+  `;
+}
+
+function renderEmployeesTab(u){
+  const employees = app.users.filter(x=>x.role==='employee');
+  const selected = app.adminSelectedEmp ? findUser(app.adminSelectedEmp) : null;
+  return `
+    <div class="page-head">
+      <div><div class="eyebrow">Team</div><h1>Employees</h1></div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="table-wrap">
+        <table>
+          <tr><th>Name</th><th>ID</th><th>Role</th><th>Department</th><th>Status</th><th></th></tr>
+          ${employees.map(e=>`
+            <tr>
+              <td>${esc(e.name)}</td>
+              <td class="mono">${esc(e.id)}</td>
+              <td>${esc(e.jobTitle)}</td>
+              <td>${esc(e.department)}</td>
+              <td><span class="badge ${e.status==='active'?'present':'absent'}"><span class="dot"></span>${e.status}</span></td>
+              <td><button class="btn btn-ghost btn-sm" onclick="setAdminSelectedEmp('${e.id}')">${app.adminSelectedEmp===e.id?'Viewing':'View'}</button></td>
+            </tr>`).join('')}
+        </table>
+        </div>
+      </div>
+      <div>
+        ${selected ? renderProfilePage(selected, selected.id, true) : `<div class="card empty-state">Select an employee to view and edit their profile.</div>`}
+      </div>
+    </div>
+  `;
+}
+
+/* ===================== PROFILE ===================== */
+function renderProfilePage(viewedUser, empId, adminEditing){
+  const u = viewedUser;
+  const avatarHtml = u.avatarUrl
+    ? `<img class="avatar big-avatar" src="${u.avatarUrl}" alt="">`
+    : `<div class="avatar big-avatar" style="background:${u.avatarColor}">${initials(u.name)}</div>`;
+
+  return `
+    ${!adminEditing ? `<div class="page-head"><div><div class="eyebrow">Profile</div><h1>${esc(u.name)}</h1></div></div>` : ''}
+    <div class="card">
+      <div class="profile-head">
+        ${avatarHtml}
+        <div>
+          <h3 style="margin-bottom:2px;">${esc(u.name)}</h3>
+          <p class="muted">${esc(u.jobTitle)} · ${esc(u.department)}</p>
+          <label class="upload-btn">Change photo
+            <input class="file-hidden" type="file" accept="image/*" onchange="if(this.files[0]) resizeAndStore(this.files[0], '${empId}')">
+          </label>
+        </div>
+      </div>
+      <form onsubmit="saveProfile(event, '${empId}', ${adminEditing})">
+        <div class="section-title" style="margin-top:0;">Personal details</div>
+        <div class="field-row">
+          <div class="field"><label>Full name</label><input name="name" value="${esc(u.name)}" ${adminEditing?'':'disabled'}></div>
+          <div class="field"><label>Email</label><input value="${esc(u.email)}" disabled></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Phone</label><input name="phone" value="${esc(u.phone)}" placeholder="+91 ..."></div>
+          <div class="field"><label>Address</label><input name="address" value="${esc(u.address)}" placeholder="City, state"></div>
+        </div>
+        <div class="section-title">Job details</div>
+        <div class="field-row">
+          <div class="field"><label>Employee ID</label><input value="${esc(u.id)}" disabled></div>
+          <div class="field"><label>Joined</label><input value="${fmtDate(u.joinDate)}" disabled></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Job title</label><input name="jobTitle" value="${esc(u.jobTitle)}" ${adminEditing?'':'disabled'}></div>
+          <div class="field"><label>Department</label><input name="department" value="${esc(u.department)}" ${adminEditing?'':'disabled'}></div>
+        </div>
+        ${adminEditing ? `
+        <div class="field"><label>Status</label>
+          <select name="status"><option value="active" ${u.status==='active'?'selected':''}>Active</option><option value="inactive" ${u.status==='inactive'?'selected':''}>Inactive</option></select>
+        </div>` : ''}
+        <button class="btn btn-primary" type="submit" style="margin-top:6px;">Save changes</button>
+      </form>
+      <div class="section-title">Salary structure</div>
+      <div class="kv">
+        <dt>Basic</dt><dd>${fmtMoney(u.salary.basic)}</dd>
+        <dt>Allowances</dt><dd>${fmtMoney(u.salary.allowances)}</dd>
+        <dt>Deductions</dt><dd>${fmtMoney(u.salary.deductions)}</dd>
+        <dt>Net pay</dt><dd><strong>${fmtMoney(netPay(u.salary))}</strong></dd>
+      </div>
+      <div class="section-title">Documents</div>
+      ${u.documents.map(d=>`<div class="doc-row"><span>📄 ${esc(d)}</span><span class="muted mono" style="font-size:11.5px;">on file</span></div>`).join('')}
+    </div>
+  `;
+}
+
+/* ===================== ATTENDANCE PAGE ===================== */
+function renderAttendancePage(u, admin){
+  const employees = app.users.filter(x=>x.role==='employee');
+  const targetId = admin ? (app.adminSelectedEmp || employees[0].id) : u.id;
+  const target = findUser(targetId);
+  const monthKey = admin ? 'adminAttMonth' : 'attMonth';
+  const monthDate = app[monthKey];
+  const cells = buildMonthCells(monthDate, targetId);
+  const todayRec = attFor(targetId, todayISO());
+
+  const weekRows = [];
+  for(let i=6;i>=0;i--){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const iso = isoOf(d.getFullYear(), d.getMonth(), d.getDate());
+    const rec = attFor(targetId, iso);
+    weekRows.push({iso, status: rec ? rec.status : (d.getDay()===0||d.getDay()===6 ? '—' : 'Not marked'), rec});
+  }
+
+  return `
+    <div class="page-head">
+      <div><div class="eyebrow">Attendance</div><h1>${admin? esc(target.name)+"'s attendance" : 'My attendance'}</h1></div>
+      ${admin ? `<select class="plain" onchange="setAdminSelectedEmp(this.value)">
+        ${employees.map(e=>`<option value="${e.id}" ${e.id===targetId?'selected':''}>${esc(e.name)}</option>`).join('')}
+      </select>` : ''}
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="row-between">
+          <h3 style="font-size:14px;">Monthly view</h3>
+          <div class="cal-nav">
+            <button onclick="changeAttMonth('${admin?'admin':'emp'}', -1)">‹</button>
+            <span class="mono" style="font-size:12.5px;">${MONTHS[monthDate.getMonth()]} ${monthDate.getFullYear()}</span>
+            <button onclick="changeAttMonth('${admin?'admin':'emp'}', 1)">›</button>
+          </div>
+        </div>
+        <div class="cal-grid">
+          ${DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('')}
+          ${cells.map(c=>{
+            if(!c) return `<div class="cal-day blank"></div>`;
+            const dotClass = c.status ? statusDotClass(c.status) : '';
+            return `<div class="cal-day ${c.isToday?'today':''} ${admin?'clickable':''}" ${admin?`onclick="openStatusEditor('${c.iso}')"`:''} title="${c.status||'Not marked'}">
+              <span class="num">${c.day}</span>
+              ${c.status ? `<span class="status-dot ${dotClass}" style="background:var(--${c.status==='Present'?'sage':c.status==='Absent'?'rose':c.status==='Half-day'?'amber':'accent'})"></span>` : ''}
+            </div>`;
+          }).join('')}
+        </div>
+        <div class="legend">
+          <span><span class="status-dot" style="background:var(--sage)"></span>Present</span>
+          <span><span class="status-dot" style="background:var(--rose)"></span>Absent</span>
+          <span><span class="status-dot" style="background:var(--amber)"></span>Half-day</span>
+          <span><span class="status-dot" style="background:var(--accent)"></span>Leave</span>
+        </div>
+        ${admin && app.statusEditorFor ? `
+          <div class="status-edit-pop">
+            <span class="mono" style="font-size:12.5px;">${fmtDate(app.statusEditorFor)}</span>
+            ${ATT_STATUSES.map(s=>`<button class="btn btn-ghost btn-sm" onclick="applyStatusEdit('${targetId}','${app.statusEditorFor}','${s}')">${s}</button>`).join('')}
+            <button class="link-btn" onclick="app.statusEditorFor=null;render()">Cancel</button>
+          </div>` : ''}
+      </div>
+      <div class="stack">
+        ${!admin ? `
+        <div class="card">
+          <h3 style="font-size:14px;">Today · ${fmtDate(todayISO())}</h3>
+          <p class="muted" style="margin:6px 0 14px;">${todayRec ? `Status: <strong>${todayRec.status}</strong>${todayRec.checkIn?` · In ${todayRec.checkIn}`:''}${todayRec.checkOut?` · Out ${todayRec.checkOut}`:''}` : 'Not checked in yet today.'}</p>
+          <div class="row-between">
+            <button class="btn btn-sage" ${todayRec && todayRec.checkIn ? 'disabled' : ''} onclick="checkIn('${u.id}')">Check in</button>
+            <button class="btn btn-ghost" ${!todayRec || !todayRec.checkIn || todayRec.checkOut ? 'disabled' : ''} onclick="checkOut('${u.id}')">Check out</button>
+          </div>
+        </div>` : ''}
+        <div class="card">
+          <h3 style="font-size:14px;margin-bottom:10px;">Last 7 days</h3>
+          ${weekRows.map(w=>`
+            <div class="row-between" style="padding:7px 0;border-bottom:1px solid var(--line);">
+              <span class="mono" style="font-size:12px;">${fmtDate(w.iso)}</span>
+              ${w.rec ? `<span class="badge ${statusDotClass(w.rec.status)}"><span class="dot"></span>${w.rec.status}</span>` : `<span class="muted" style="font-size:12px;">${w.status}</span>`}
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+function openStatusEditor(iso){ app.statusEditorFor = iso; render(); }
+async function applyStatusEdit(empId, iso, status){
+  await setAttendanceStatus(empId, iso, status);
+  app.statusEditorFor = null;
+  toast('Attendance updated for ' + fmtDate(iso) + '.', 'ok');
+  render();
+}
+
+/* ===================== LEAVE PAGE (employee) ===================== */
+function renderLeavePage(u){
+  const f = app.leaveForm;
+  const cells = buildMonthCells(f.calMonth, u.id);
+  const mine = app.leaves.filter(l=>l.employeeId===u.id).sort((a,b)=> b.createdAt.localeCompare(a.createdAt));
+
+  return `
+    <div class="page-head">
+      <div><div class="eyebrow">Leave & time-off</div><h1>Apply for leave</h1></div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="field">
+          <label>Leave type</label>
+          <select onchange="draftLeaveType(this.value)">
+            ${LEAVE_TYPES.map(t=>`<option value="${t}" ${f.type===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="row-between">
+          <label style="font-size:12.5px;font-weight:600;color:var(--ink-soft);">Select dates on the calendar</label>
+          <div class="cal-nav">
+            <button onclick="changeLeaveCalMonth(-1)">‹</button>
+            <span class="mono" style="font-size:12.5px;">${MONTHS[f.calMonth.getMonth()]} ${f.calMonth.getFullYear()}</span>
+            <button onclick="changeLeaveCalMonth(1)">›</button>
+          </div>
+        </div>
+        <div class="cal-grid">
+          ${DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('')}
+          ${cells.map(c=>{
+            if(!c) return `<div class="cal-day blank"></div>`;
+            let cls='clickable';
+            if(f.start && c.iso===f.start && !f.end) cls+=' range-end';
+            else if(f.start && f.end && c.iso===f.end) cls+=' range-end';
+            else if(f.start && f.end && isoInRange(c.iso, f.start, f.end)) cls+=' in-range';
+            else if(f.start && c.iso===f.start) cls+=' range-end';
+            
+            const dotClass = c.status ? statusDotClass(c.status) : '';
+            return `<div class="cal-day ${cls}" onclick="pickLeaveDate('${c.iso}')" title="${c.status||'Not marked'}">
+              <span class="num">${c.day}</span>
+              ${c.status ? `<span class="status-dot ${dotClass}" style="background:var(--${c.status==='Present'?'sage':c.status==='Absent'?'rose':c.status==='Half-day'?'amber':'accent'})"></span>` : ''}
+            </div>`;
+          }).join('')}
+        </div>
+        <div class="legend" style="margin-top:12px;">
+          <span><span class="status-dot" style="background:var(--sage)"></span>Present</span>
+          <span><span class="status-dot" style="background:var(--rose)"></span>Absent</span>
+          <span><span class="status-dot" style="background:var(--amber)"></span>Half-day</span>
+          <span><span class="status-dot" style="background:var(--accent)"></span>Leave</span>
+        </div>
+        <div class="row-between" style="margin-top:16px;">
+          <span class="muted" style="font-size:12.5px;">${f.start ? `${fmtDate(f.start)} → ${fmtDate(f.end||f.start)}` : 'No dates selected yet'}</span>
+          ${f.start ? `<button class="link-btn" onclick="clearLeaveRange()">Clear</button>` : ''}
+        </div>
+        <form onsubmit="submitLeave(event)">
+          <div class="field" style="margin-top:14px;">
+            <label>Remarks</label>
+            <textarea rows="3" oninput="draftLeaveRemarks(this.value)" placeholder="Add a short note for your approver">${esc(f.remarks)}</textarea>
+          </div>
+          <button class="btn btn-primary" type="submit">Submit request</button>
+        </form>
+      </div>
+      <div class="card">
+        <h3 style="font-size:14px;margin-bottom:12px;">My requests</h3>
+        ${mine.length ? mine.map(l=>`
+          <div style="padding:10px 0;border-bottom:1px solid var(--line);">
+            <div class="row-between">
+              <span class="type-chip">${l.type}</span>
+              <span class="badge ${l.status.toLowerCase()}"><span class="dot"></span>${l.status}</span>
+            </div>
+            <p style="margin-top:6px;font-size:13px;">${fmtDate(l.start)} → ${fmtDate(l.end)}</p>
+            ${l.remarks ? `<p class="muted" style="font-size:12.5px;margin-top:3px;">${esc(l.remarks)}</p>` : ''}
+            ${l.comment ? `<p class="mono" style="font-size:11.5px;margin-top:5px;color:var(--ink-soft);">HR note: ${esc(l.comment)}</p>` : ''}
+          </div>
+        `).join('') : `<div class="empty-state">No leave requests yet.</div>`}
+      </div>
+    </div>
+  `;
+}
+
+/* ===================== LEAVE APPROVALS (admin) ===================== */
+function renderApprovalsTab(u){
+  const filter = app.leaveFilter;
+  let list = app.leaves.slice().sort((a,b)=> b.createdAt.localeCompare(a.createdAt));
+  if(filter!=='all') list = list.filter(l=>l.status===filter);
+
+  return `
+    <div class="page-head">
+      <div><div class="eyebrow">Leave & time-off</div><h1>Leave approvals</h1></div>
+    </div>
+    <div class="tabs">
+      ${['all','Pending','Approved','Rejected'].map(s=>`<button class="tab-btn ${filter===s?'active':''}" onclick="app.leaveFilter='${s}';render()">${s==='all'?'All':s}</button>`).join('')}
+    </div>
+    <div class="stack">
+      ${list.length ? list.map(l=>{
+        const emp = findUser(l.employeeId);
+        return `
+        <div class="card">
+          <div class="row-between">
+            <div>
+              <strong>${esc(emp?emp.name:l.employeeId)}</strong> <span class="muted mono" style="font-size:11.5px;">${esc(l.employeeId)}</span>
+              <p class="muted" style="font-size:12.5px;margin-top:2px;">Requested ${fmtDate(l.createdAt)}</p>
+            </div>
+            <span class="badge ${l.status.toLowerCase()}"><span class="dot"></span>${l.status}</span>
+          </div>
+          <hr class="hairline">
+          <div class="row-between">
+            <span class="type-chip">${l.type}</span>
+            <span style="font-size:13px;">${fmtDate(l.start)} → ${fmtDate(l.end)}</span>
+          </div>
+          ${l.remarks ? `<p class="muted" style="font-size:12.5px;margin-top:8px;">"${esc(l.remarks)}"</p>` : ''}
+          ${l.status==='Pending' ? `
+            <div class="field" style="margin-top:12px;">
+              <label>Comment (optional)</label>
+              <input oninput="draftComment('${l.id}', this.value)" placeholder="Add a note for the employee" value="${esc(app.commentDraft[l.id]||'')}">
+            </div>
+            <div class="row-between">
+              <button class="btn btn-sage btn-sm" onclick="decideLeave('${l.id}','Approved')">Approve</button>
+              <button class="btn btn-rose btn-sm" onclick="decideLeave('${l.id}','Rejected')">Reject</button>
+            </div>
+          ` : l.comment ? `<p class="mono muted" style="font-size:11.5px;margin-top:8px;">HR note: ${esc(l.comment)}</p>` : ''}
+        </div>`;
+      }).join('') : `<div class="empty-state">No leave requests in this filter.</div>`}
+    </div>
+  `;
+}
+
+/* ===================== PAYROLL PAGE ===================== */
+function renderPayrollPage(u, admin){
+  if(!admin){
+    const sal = u.salary;
+    return `
+      <div class="page-head"><div><div class="eyebrow">Payroll</div><h1>My salary structure</h1></div></div>
+      <div class="card" style="max-width:460px;">
+        <div class="kv">
+          <dt>Basic pay</dt><dd>${fmtMoney(sal.basic)}</dd>
+          <dt>Allowances</dt><dd>${fmtMoney(sal.allowances)}</dd>
+          <dt>Deductions</dt><dd>${fmtMoney(sal.deductions)}</dd>
+        </div>
+        <hr class="hairline">
+        <div class="row-between"><h3 style="font-size:15px;">Net pay</h3><h3 style="font-size:18px;">${fmtMoney(netPay(sal))}</h3></div>
+        <p class="muted mono" style="font-size:11px;margin-top:10px;">Last updated ${fmtDate(u.updatedAt)} · Read-only</p>
+      </div>
+    `;
+  }
+  const employees = app.users.filter(x=>x.role==='employee');
+  return `
+    <div class="page-head"><div><div class="eyebrow">Payroll</div><h1>Payroll control</h1></div></div>
+    <div class="stack">
+      ${employees.map(e=>`
+        <div class="card">
+          <div class="row-between">
+            <div><strong>${esc(e.name)}</strong> <span class="muted mono" style="font-size:11.5px;">${esc(e.id)}</span></div>
+            <button class="btn btn-ghost btn-sm" onclick="toggleSalaryEdit('${e.id}')">${app.editingSalaryFor===e.id?'Close':'Edit'}</button>
+          </div>
+          ${app.editingSalaryFor===e.id ? `
+            <form onsubmit="saveSalary(event,'${e.id}')" style="margin-top:12px;">
+              <div class="field-row">
+                <div class="field"><label>Basic</label><input name="basic" type="number" value="${e.salary.basic}"></div>
+                <div class="field"><label>Allowances</label><input name="allowances" type="number" value="${e.salary.allowances}"></div>
+                <div class="field"><label>Deductions</label><input name="deductions" type="number" value="${e.salary.deductions}"></div>
+              </div>
+              <button class="btn btn-primary btn-sm" type="submit">Save salary</button>
+            </form>
+          ` : `
+            <div class="kv" style="margin-top:12px;">
+              <dt>Basic</dt><dd>${fmtMoney(e.salary.basic)}</dd>
+              <dt>Allowances</dt><dd>${fmtMoney(e.salary.allowances)}</dd>
+              <dt>Deductions</dt><dd>${fmtMoney(e.salary.deductions)}</dd>
+              <dt>Net pay</dt><dd><strong>${fmtMoney(netPay(e.salary))}</strong></dd>
+            </div>
+          `}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+/* ===================== DATABASE EXPLORER FUNCTIONS ===================== */
+async function loadDbSchema() {
+  try {
+    app.dbSchema = await apiCall('/api/db/schema');
+  } catch (e) {
+    console.error('Failed to load database schema', e);
+  }
+}
+
+async function openDbTable(tableName) {
+  app.dbActiveTable = tableName;
+  app.dbTablePage = 1;
+  app.dbTableSearch = '';
+  await refreshTableData();
+}
+
+async function refreshTableData() {
+  const tableName = app.dbActiveTable;
+  const page = app.dbTablePage;
+  const limit = app.dbTableLimit;
+  const search = app.dbTableSearch.trim();
+
+  if (!app.dbSchema) {
+    await loadDbSchema();
+  }
+
+  const tableInfo = app.dbSchema ? app.dbSchema.find(t => t.name === tableName) : null;
+  const columns = tableInfo ? tableInfo.columns.map(c => c.name) : [];
+
+  let sqlQuery = `SELECT * FROM "${tableName}"`;
+  let sqlCount = `SELECT COUNT(*) as cnt FROM "${tableName}"`;
+
+  if (search && columns.length > 0) {
+    const likeClauses = columns.map(c => `CAST("${c}" AS TEXT) LIKE '%${search.replace(/'/g, "''")}%'`);
+    const whereClause = ` WHERE ${likeClauses.join(' OR ')}`;
+    sqlQuery += whereClause;
+    sqlCount += whereClause;
+  }
+
+  sqlQuery += ` LIMIT ${limit} OFFSET ${(page - 1) * limit};`;
+
+  try {
+    const start = performance.now();
+    const [dataRes, countRes] = await Promise.all([
+      apiCall('/api/db/query', { method: 'POST', body: { query: sqlQuery } }),
+      apiCall('/api/db/query', { method: 'POST', body: { query: sqlCount } })
+    ]);
+    const end = performance.now();
+
+    const rows = dataRes.rows || [];
+    const totalRows = countRes.rows && countRes.rows[0] ? countRes.rows[0].cnt : 0;
+    const totalPages = Math.ceil(totalRows / limit) || 1;
+
+    app.dbQueryResult = {
+      success: true,
+      type: 'table_view',
+      rows,
+      columns: rows.length > 0 ? Object.keys(rows[0]) : columns,
+      totalRows,
+      totalPages,
+      timeMs: Math.round(end - start)
+    };
+    render();
+  } catch (e) {
+    app.dbQueryResult = {
+      success: false,
+      error: e.message
+    };
+    render();
+  }
+}
+
+async function executeCustomSql() {
+  const query = app.dbQueryText.trim();
+  if (!query) return;
+
+  try {
+    const start = performance.now();
+    const res = await apiCall('/api/db/query', { method: 'POST', body: { query } });
+    const end = performance.now();
+
+    app.dbQueryResult = {
+      success: true,
+      type: res.type,
+      rows: res.rows || [],
+      columns: res.rows && res.rows.length > 0 ? Object.keys(res.rows[0]) : [],
+      changes: res.changes,
+      lastInsertRowid: res.lastInsertRowid,
+      timeMs: Math.round(end - start)
+    };
+    await loadDbSchema(); // Refresh schema in case table was created/dropped
+    render();
+  } catch (e) {
+    app.dbQueryResult = {
+      success: false,
+      error: e.message
+    };
+    render();
+  }
+}
+
+function selectDbTab(tab) {
+  app.dbSubRoute = tab;
+  app.dbQueryResult = null;
+  if (tab === 'data') {
+    openDbTable(app.dbActiveTable);
+  } else if (tab === 'schema' && !app.dbSchema) {
+    loadDbSchema().then(() => render());
+  } else {
+    render();
+  }
+}
+
+function renderDbManagePage() {
+  if (!app.dbSchema) {
+    loadDbSchema().then(() => render());
+    return `<div style="padding:40px;text-align:center;" class="mono muted">Loading Database Schema...</div>`;
+  }
+
+  const tables = app.dbSchema || [];
+  const currentTable = tables.find(t => t.name === app.dbActiveTable) || tables[0];
+  const activeTab = app.dbSubRoute;
+
+  let tabContent = '';
+  if (activeTab === 'schema') {
+    tabContent = `
+      <div class="stack">
+        <div class="row-between">
+          <h2>Database Tables Schema</h2>
+          <button class="btn btn-ghost btn-sm" onclick="loadDbSchema().then(() => render())">↻ Refresh</button>
+        </div>
+        ${tables.map(t => `
+          <div class="card" style="margin-bottom:16px;">
+            <h3 style="font-size:16px;margin-bottom:12px;">📋 Table: <span class="mono">${t.name}</span></h3>
+            <div class="table-wrap" style="margin-bottom:14px;">
+              <table class="schema-table">
+                <thead>
+                  <tr><th>CID</th><th>Column</th><th>Type</th><th>Not Null</th><th>Default</th><th>Primary Key</th></tr>
+                </thead>
+                <tbody>
+                  ${t.columns.map(c => `
+                    <tr>
+                      <td class="mono">${c.cid}</td>
+                      <td class="mono" style="font-weight:600;">${c.name}</td>
+                      <td class="mono" style="color:var(--accent);">${c.type}</td>
+                      <td class="mono">${c.notnull ? 'YES' : 'NO'}</td>
+                      <td class="mono muted">${c.dflt_value !== null ? esc(c.dflt_value) : 'NULL'}</td>
+                      <td class="mono" style="color:${c.pk ? 'var(--amber)' : 'inherit'}">${c.pk ? '🔑 YES' : 'NO'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+            <p class="eyebrow">Table SQL Definition</p>
+            <pre class="code-box" style="margin-top:6px;background:#1e293b;color:#e2e8f0;font-size:12px;">${esc(t.sql)}</pre>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } else if (activeTab === 'query') {
+    const qResult = app.dbQueryResult;
+    let resultHtml = '';
+    if (qResult) {
+      if (!qResult.success) {
+        resultHtml = `<div class="error-box" style="margin-top:16px;"><strong>SQL Error:</strong> ${esc(qResult.error)}</div>`;
+      } else if (qResult.type === 'select' || qResult.type === 'table_view') {
+        const rows = qResult.rows || [];
+        const cols = qResult.columns || [];
+        resultHtml = `
+          <div style="margin-top:20px;">
+            <div class="row-between" style="margin-bottom:10px;">
+              <span class="mono muted" style="font-size:12px;">Executed successfully in ${qResult.timeMs}ms. Returned ${rows.length} rows.</span>
+            </div>
+            ${rows.length > 0 ? `
+              <div class="card" style="padding:12px;overflow:hidden;"><div class="table-wrap">
+                <table class="schema-table">
+                  <thead>
+                    <tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>
+                  </thead>
+                  <tbody>
+                    ${rows.map(r => `
+                      <tr>${cols.map(c => `<td class="mono" style="font-size:12px;white-space:nowrap;">${esc(String(r[c] !== null ? r[c] : 'NULL'))}</td>`).join('')}</tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div></div>
+            ` : `<div class="empty-state">Query returned 0 rows.</div>`}
+          </div>
+        `;
+      } else {
+        resultHtml = `
+          <div class="info-box" style="margin-top:16px;background:var(--sage-soft);color:var(--sage);border-color:rgba(16,185,129,0.2);">
+            <strong>Query Success!</strong><br>
+            Rows affected: ${qResult.changes}<br>
+            Last Inserted Row ID: ${qResult.lastInsertRowid !== null ? qResult.lastInsertRowid : 'N/A'}<br>
+            Execution Time: ${qResult.timeMs}ms
+          </div>
+        `;
+      }
+    }
+
+    tabContent = `
+      <div class="stack">
+        <h2>SQL Query Console</h2>
+        <p class="muted">Run custom raw SQL statements directly on your SQLite database file.</p>
+        <div style="position:relative;">
+          <textarea class="sql-textarea" rows="6" oninput="app.dbQueryText = this.value" placeholder="SELECT * FROM users WHERE role = 'employee';">${esc(app.dbQueryText)}</textarea>
+        </div>
+        <div class="row-between">
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-ghost btn-sm" onclick="app.dbQueryText = 'SELECT * FROM users;';render()">users</button>
+            <button class="btn btn-ghost btn-sm" onclick="app.dbQueryText = 'SELECT employeeId, date, status FROM attendance ORDER BY date DESC LIMIT 20;';render()">attendance</button>
+            <button class="btn btn-ghost btn-sm" onclick="app.dbQueryText = 'SELECT * FROM leaves WHERE status = \\'Pending\\';';render()">leaves</button>
+          </div>
+          <button class="btn btn-primary" onclick="executeCustomSql()">Execute SQL</button>
+        </div>
+        ${resultHtml}
+      </div>
+    `;
+  } else {
+    // Data Viewer
+    const qResult = app.dbQueryResult;
+    let tableDataHtml = '';
+    if (qResult) {
+      if (!qResult.success) {
+        tableDataHtml = `<div class="error-box"><strong>Error loading table:</strong> ${esc(qResult.error)}</div>`;
+      } else {
+        const rows = qResult.rows || [];
+        const cols = qResult.columns || [];
+        tableDataHtml = `
+          <div class="row-between" style="margin-bottom:12px;">
+            <span class="mono muted" style="font-size:12px;">Showing rows ${(app.dbTablePage - 1) * app.dbTableLimit + 1}–${Math.min(app.dbTablePage * app.dbTableLimit, qResult.totalRows)} of ${qResult.totalRows}</span>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <label class="mono" style="font-size:12px;">Limit:
+                <select class="plain" style="padding:4px 8px;font-size:11px;" onchange="app.dbTableLimit=Number(this.value);app.dbTablePage=1;refreshTableData()">
+                  <option value="5" ${app.dbTableLimit === 5 ? 'selected' : ''}>5</option>
+                  <option value="10" ${app.dbTableLimit === 10 ? 'selected' : ''}>10</option>
+                  <option value="25" ${app.dbTableLimit === 25 ? 'selected' : ''}>25</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <div class="card" style="padding:12px;margin-bottom:16px;overflow:hidden;"><div class="table-wrap">
+            <table class="schema-table">
+              <thead>
+                <tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>
+              </thead>
+              <tbody>
+                ${rows.length > 0 ? rows.map(r => `
+                  <tr>${cols.map(c => {
+                    let val = r[c];
+                    if (val === null) return `<td class="mono muted" style="font-size:12px;">NULL</td>`;
+                    if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
+                      // Truncate long JSON docs for readability
+                      return `<td class="mono" style="font-size:11px;color:var(--accent-ink);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(val)}">${esc(val)}</td>`;
+                    }
+                    return `<td class="mono" style="font-size:12px;white-space:nowrap;">${esc(String(val))}</td>`;
+                  }).join('')}</tr>
+                `).join('') : `<tr><td colspan="${cols.length}" class="muted" style="text-align:center;padding:24px;">No records match the query.</td></tr>`}
+              </tbody>
+            </table>
+          </div></div>
+          <div class="row-between">
+            <button class="btn btn-ghost btn-sm" ${app.dbTablePage <= 1 ? 'disabled' : ''} onclick="app.dbTablePage--;refreshTableData()">← Previous</button>
+            <span class="mono" style="font-size:12px;">Page ${app.dbTablePage} of ${qResult.totalPages}</span>
+            <button class="btn btn-ghost btn-sm" ${app.dbTablePage >= qResult.totalPages ? 'disabled' : ''} onclick="app.dbTablePage++;refreshTableData()">Next →</button>
+          </div>
+        `;
+      }
+    }
+
+    tabContent = `
+      <div class="stack">
+        <div class="row-between">
+          <h2>Table Viewer: <span class="mono">${app.dbActiveTable}</span></h2>
+          <div style="display:flex;gap:8px;">
+            <input type="text" placeholder="Search table..." class="plain" style="padding:6px 12px;font-size:13px;" value="${esc(app.dbTableSearch)}" oninput="app.dbTableSearch=this.value;app.dbTablePage=1;refreshTableData()">
+            <button class="btn btn-ghost btn-sm" onclick="refreshTableData()">↻ Refresh</button>
+          </div>
+        </div>
+        ${tableDataHtml}
+      </div>
+    `;
+  }
+
+  return `
+    <div class="page-head">
+      <div><div class="eyebrow">Database Console</div><h1>Database Management</h1></div>
+      <div class="tabs" style="margin-bottom:0;border:none;">
+        <button class="tab-btn ${activeTab === 'data' ? 'active' : ''}" onclick="selectDbTab('data')">Data Viewer</button>
+        <button class="tab-btn ${activeTab === 'query' ? 'active' : ''}" onclick="selectDbTab('query')">Query Console</button>
+        <button class="tab-btn ${activeTab === 'schema' ? 'active' : ''}" onclick="selectDbTab('schema')">Schema Browser</button>
+      </div>
+    </div>
+    <div class="db-layout">
+      <div class="db-sidebar">
+        <div class="eyebrow" style="margin-bottom:8px;">Database Tables</div>
+        ${tables.map(t => `<button class="db-table-btn ${app.dbActiveTable === t.name && activeTab === 'data' ? 'active' : ''}" onclick="app.dbSubRoute='data';openDbTable('${t.name}')">📋 ${t.name}</button>`).join('')}
+        <hr class="hairline">
+        <button class="btn btn-ghost btn-block btn-sm" onclick="exportDbFile()">📥 Download SQLite DB</button>
+      </div>
+      <div>
+        ${tabContent}
+      </div>
+    </div>
+  `;
+}
+
+// Fallback logic for offline hrms (1).html to export database file
+function exportDbFile() {
+  window.location.href = '/api/db/schema'; // In online server mode, direct link or fetch export
+  // Wait, on the Express server we can also support download. Let's make it download a sqlite file or redirect.
+  // Actually, we can fetch hrms.db download link or show database stats.
+  toast('Database downloads available on offline app client', 'info');
+}
+
+
+/* ===================== API DEVELOPMENT & INTEGRATION ===================== */
+function selectApiEndpoint(index) {
+  const ep = API_DIRECTORY[index];
+  app.apiSubRoute = 'tester';
+  app.apiTester.method = ep.method;
+  app.apiTester.url = ep.path;
+  app.apiTester.headers = [
+    {key: 'Content-Type', value: 'application/json'}
+  ];
+  if (ep.auth) {
+    app.apiTester.headers.push({key: 'X-User-Id', value: app.session || 'EMP-1000'});
+  }
+  app.apiTester.body = ep.reqBody ? JSON.stringify(ep.reqBody, null, 2) : '';
+  app.apiTester.response = null;
+  render();
+}
+
+function addTesterHeader() {
+  app.apiTester.headers.push({key: '', value: ''});
+  render();
+}
+
+function removeTesterHeader(idx) {
+  app.apiTester.headers.splice(idx, 1);
+  render();
+}
+
+async function sendApiTesterRequest() {
+  app.apiTester.loading = true;
+  app.apiTester.response = null;
+  render();
+
+  const tester = app.apiTester;
+  const reqHeaders = {};
+  tester.headers.forEach(h => {
+    if (h.key.trim()) {
+      reqHeaders[h.key.trim()] = h.value;
+    }
+  });
+
+  const options = {
+    method: tester.method,
+    headers: reqHeaders
+  };
+
+  if (tester.method !== 'GET' && tester.body.trim()) {
+    options.body = tester.body;
+  }
+
+  const start = performance.now();
+  try {
+    const res = await fetch(tester.url, options);
+    const text = await res.text();
+    const end = performance.now();
+
+    let json = null;
+    try { json = JSON.parse(text); } catch (e) {}
+
+    const resHeaders = {};
+    res.headers.forEach((v, k) => {
+      resHeaders[k] = v;
+    });
+
+    app.apiTester.response = {
+      success: res.ok,
+      status: res.status,
+      statusText: res.statusText,
+      headers: resHeaders,
+      body: json !== null ? JSON.stringify(json, null, 2) : text,
+      timeMs: Math.round(end - start)
+    };
+  } catch (err) {
+    app.apiTester.response = {
+      success: false,
+      status: 0,
+      statusText: 'Network Error',
+      headers: {},
+      body: err.message,
+      timeMs: 0
+    };
+  } finally {
+    app.apiTester.loading = false;
+    render();
+  }
+}
+
+async function triggerWebhookTest(whId) {
+  const wh = app.webhooks.find(w => w.id === whId);
+  if (!wh) return;
+
+  const payload = {
+    event: wh.event,
+    timestamp: new Date().toISOString(),
+    webhookId: wh.id,
+    data: wh.event === 'attendance.checkin' ? {
+      employeeId: 'EMP-1001',
+      employeeName: 'Arjun Sen',
+      date: todayISO(),
+      checkIn: '09:14'
+    } : {
+      leaveId: 'LV-49a21b',
+      employeeId: 'EMP-1002',
+      employeeName: 'Meher Iqbal',
+      type: 'Paid',
+      start: '2026-07-10',
+      end: '2026-07-12',
+      status: 'Approved',
+      comment: 'Approved by HR officer.'
+    }
+  };
+
+  // Log simulated webhook trigger
+  const logId = 'log-' + Math.random().toString(36).slice(2,9);
+  const logEntry = {
+    id: logId,
+    webhookId: wh.id,
+    event: wh.event,
+    url: wh.url,
+    timestamp: new Date().toTimeString().slice(0,8),
+    status: 'Sending...',
+    success: null
+  };
+  app.webhookLogs.unshift(logEntry);
+  render();
+
+  try {
+    const res = await fetch(wh.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-HRMS-Signature': 'mock_sha256_signature_for_integrity'
+      },
+      body: JSON.stringify(payload)
+    });
+    logEntry.status = `${res.status} ${res.statusText}`;
+    logEntry.success = res.ok;
+  } catch (err) {
+    logEntry.status = 'Failed (Network Error)';
+    logEntry.success = false;
+  }
+  render();
+}
+
+function addWebhook(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const event = f.event.value;
+  const url = f.url.value.trim();
+  const desc = f.desc.value.trim();
+
+  if (!url) {
+    toast('Webhook Destination URL is required', 'error');
+    return;
+  }
+
+  app.webhooks.push({
+    id: 'wh-' + Math.random().toString(36).slice(2,9),
+    event,
+    url,
+    desc
+  });
+  f.reset();
+  toast('Webhook registered successfully', 'ok');
+  render();
+}
+
+function removeWebhook(id) {
+  app.webhooks = app.webhooks.filter(w => w.id !== id);
+  toast('Webhook removed', 'error');
+  render();
+}
+
+function renderApiDevPage() {
+  const activeTab = app.apiSubRoute;
+
+  let tabContent = '';
+  if (activeTab === 'tester') {
+    const tester = app.apiTester;
+    const response = tester.response;
+
+    let resHtml = '';
+    if (tester.loading) {
+      resHtml = `<div style="padding:40px;text-align:center;" class="mono muted">Sending API request...</div>`;
+    } else if (response) {
+      resHtml = `
+        <div style="margin-top:20px;">
+          <div class="row-between" style="margin-bottom:10px;">
+            <h3>HTTP Response</h3>
+            <span class="response-badge ${response.success ? 'success' : 'error'}">
+              STATUS: ${response.status} ${response.statusText} (${response.timeMs}ms)
+            </span>
+          </div>
+          <div class="card" style="padding:14px;background:#0f172a;border-color:#1e293b;">
+            <p class="eyebrow" style="color:#64748b;">Response Headers</p>
+            <pre style="margin:4px 0 14px;color:#94a3b8;font-family:var(--mono);font-size:12px;overflow-x:auto;">${Object.entries(response.headers).map(([k,v]) => `${k}: ${v}`).join('\n') || '(no headers)'}</pre>
+            <p class="eyebrow" style="color:#64748b;">Response JSON Body</p>
+            <pre class="code-box" style="margin-top:4px;font-size:12px;color:#38bdf8;">${esc(response.body)}</pre>
+          </div>
+        </div>
+      `;
+    }
+
+    tabContent = `
+      <div class="stack">
+        <h2>Interactive API Client</h2>
+        <p class="muted">Construct, edit, and send actual HTTP requests to the HRMS API endpoints.</p>
+        <div class="card">
+          <div class="field-row">
+            <div class="field" style="flex: 0 0 120px;">
+              <label>HTTP Method</label>
+              <select onchange="app.apiTester.method = this.value; render()">
+                <option value="GET" ${tester.method === 'GET' ? 'selected' : ''}>GET</option>
+                <option value="POST" ${tester.method === 'POST' ? 'selected' : ''}>POST</option>
+                <option value="PUT" ${tester.method === 'PUT' ? 'selected' : ''}>PUT</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Endpoint URL path</label>
+              <input type="text" oninput="app.apiTester.url = this.value" value="${esc(tester.url)}" placeholder="/api/auth/me">
+            </div>
+          </div>
+          
+          <div class="field">
+            <div class="row-between" style="margin-bottom:4px;">
+              <label style="margin-bottom:0;">Request Headers</label>
+              <button class="link-btn" onclick="addTesterHeader()">+ Add header</button>
+            </div>
+            ${tester.headers.map((h, i) => `
+              <div class="field-row" style="margin-bottom:6px;">
+                <input type="text" style="padding:6px 10px;font-size:12.5px;font-family:var(--mono);" placeholder="Header-Name" value="${esc(h.key)}" oninput="app.apiTester.headers[${i}].key = this.value">
+                <input type="text" style="padding:6px 10px;font-size:12.5px;font-family:var(--mono);" placeholder="value" value="${esc(h.value)}" oninput="app.apiTester.headers[${i}].value = this.value">
+                <button class="btn btn-ghost btn-sm" onclick="removeTesterHeader(${i})" style="padding:5px 8px;color:var(--rose);">✖</button>
+              </div>
+            `).join('')}
+          </div>
+
+          ${tester.method !== 'GET' ? `
+            <div class="field">
+              <label>Request JSON Body</label>
+              <textarea class="json-editor" rows="5" oninput="app.apiTester.body = this.value" placeholder='{"key": "value"}'>${esc(tester.body)}</textarea>
+            </div>
+          ` : ''}
+
+          <div class="row-between">
+            <span class="mono muted" style="font-size:12px;">Active user context: <strong>${esc(app.session || 'EMP-1000')}</strong></span>
+            <button class="btn btn-primary" onclick="sendApiTesterRequest()">Send HTTP Request</button>
+          </div>
+        </div>
+        ${resHtml}
+      </div>
+    `;
+  } else if (activeTab === 'webhooks') {
+    tabContent = `
+      <div class="stack">
+        <h2>Webhooks & Real-time Integrations</h2>
+        <p class="muted">Register webhook targets to receive real-time JSON payloads whenever attendance check-ins or leave decisions happen.</p>
+        <div class="two-col">
+          <div class="card">
+            <h3 style="font-size:15px;margin-bottom:12px;">Configure New Webhook</h3>
+            <form onsubmit="addWebhook(event)">
+              <div class="field">
+                <label>Event Trigger</label>
+                <select name="event">
+                  <option value="attendance.checkin">Attendance Check-in (attendance.checkin)</option>
+                  <option value="leave.approved">Leave Request Approved (leave.approved)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Destination Webhook URL</label>
+                <input type="url" name="url" placeholder="https://api.yourcompany.com/v1/hr-events" required>
+              </div>
+              <div class="field">
+                <label>Description</label>
+                <input type="text" name="desc" placeholder="Integration description">
+              </div>
+              <button class="btn btn-primary" type="submit">Register Webhook</button>
+            </form>
+          </div>
+          <div class="card">
+            <h3 style="font-size:15px;margin-bottom:12px;">Active Webhooks</h3>
+            ${app.webhooks.map(w => `
+              <div style="padding:10px 0;border-bottom:1px solid var(--line);">
+                <div class="row-between">
+                  <span class="type-chip" style="background:var(--accent-soft);color:var(--accent);border-color:rgba(99,102,241,0.15);font-size:11px;">${w.event}</span>
+                  <button class="link-btn" style="color:var(--rose);" onclick="removeWebhook('${w.id}')">Remove</button>
+                </div>
+                <p class="mono" style="font-size:12px;margin:6px 0;word-break:break-all;color:var(--ink-soft);">${esc(w.url)}</p>
+                <p class="muted" style="font-size:12px;">${esc(w.desc)}</p>
+                <button class="btn btn-ghost btn-sm" style="margin-top:8px;padding:4px 8px;font-size:11.5px;" onclick="triggerWebhookTest('${w.id}')">⚡ Trigger Mock Payload</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="font-size:15px;margin-bottom:10px;">Webhook Delivery Log (Simulated)</h3>
+          <div style="background:#0f172a;border-radius:8px;max-height:220px;overflow-y:auto;border:1px solid #1e293b;color:#38bdf8;">
+            ${app.webhookLogs.length > 0 ? app.webhookLogs.map(l => `
+              <div class="webhook-log-line">
+                <span style="color:#64748b;">[${l.timestamp}]</span>
+                <span style="color:#e2e8f0;font-weight:600;">${l.event}</span> → 
+                <span style="color:#94a3b8;">${esc(l.url)}</span>
+                <span class="mono" style="float:right;color:${l.success === null ? '#f59e0b' : l.success ? '#10b981' : '#ef4444'};">
+                  ${l.status}
+                </span>
+              </div>
+            `).join('') : `<div style="padding:20px;text-align:center;" class="mono muted">No webhook payloads triggered yet.</div>`}
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    // API Documentation Tab
+    tabContent = `
+      <div class="stack">
+        <h2>HTTP API Endpoint Documentation</h2>
+        <p class="muted">Complete, interactive specification of the Ledger HRMS API surface. Click <strong>Test endpoint</strong> to load any command directly into the REST client.</p>
+        
+        <div class="stack">
+          ${API_DIRECTORY.map((ep, i) => {
+            const hasBody = ep.reqBody !== null;
+            return `
+              <div class="api-endpoint-card" onclick="selectApiEndpoint(${i})">
+                <div class="row-between">
+                  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <span class="method-badge ${ep.method.toLowerCase()}">${ep.method}</span>
+                    <strong class="mono" style="font-size:14.5px;color:var(--ink-soft);">${esc(ep.path)}</strong>
+                  </div>
+                  <button class="btn btn-ghost btn-sm" style="padding:4px 10px;font-size:11.5px;">Test endpoint ↗</button>
+                </div>
+                <p style="margin-top:8px;font-size:13.5px;color:var(--ink-soft);">${esc(ep.desc)}</p>
+                <div class="row-between" style="margin-top:10px;font-size:11.5px;">
+                  <span class="muted font-mono">Authentication: <strong>${ep.auth ? 'Required (X-User-Id)' : 'None'}</strong></span>
+                  <span class="muted">Request Payload: <strong>${hasBody ? 'JSON' : 'None'}</strong></span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="page-head">
+      <div><div class="eyebrow">API Developer Portal</div><h1>API Development & Integration</h1></div>
+      <div class="tabs" style="margin-bottom:0;border:none;">
+        <button class="tab-btn ${activeTab === 'docs' ? 'active' : ''}" onclick="app.apiSubRoute='docs';render()">API Reference</button>
+        <button class="tab-btn ${activeTab === 'tester' ? 'active' : ''}" onclick="app.apiSubRoute='tester';render()">Interactive Tester</button>
+        <button class="tab-btn ${activeTab === 'webhooks' ? 'active' : ''}" onclick="app.apiSubRoute='webhooks';render()">Webhooks & Real-time</button>
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      ${tabContent}
+    </div>
+  `;
+}
+
+
+/* ===================== BOOT ===================== */
+init();
+</script>
+</body>
+</html>
